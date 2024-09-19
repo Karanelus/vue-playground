@@ -1,5 +1,5 @@
 {
-  "name": "test_app",
+  "name": "vue-playground",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.2",
+    "sass-embedded": "^1.78.0",
     "typescript": "^5.5.3",
     "vite": "^5.4.1",
     "vue-tsc": "^2.0.29"
