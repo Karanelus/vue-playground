@@ -55,7 +55,7 @@ const handleSubmit = async () => {
     const data = await createTodos(titleCur);
     todosList.value.push({ ...data, editing: false });
   } catch (err) {
-    alertr("Failed to create todo", err);
+    alert(`Failed to create todo - ${err}`);
   } finally {
     title.value = "";
   }
@@ -66,7 +66,7 @@ const handleClickDeleteTodo = async (todo: Todo) => {
     await deleteTodos(todo.id);
     todosList.value.filter((el) => el.id !== todo.id);
   } catch (err) {
-    alertr("Failed to delete todo", err);
+    alert(`Failed to delete todo - ${err}`);
   } finally {
     title.value = "";
   }

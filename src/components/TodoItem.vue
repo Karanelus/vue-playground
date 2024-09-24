@@ -19,7 +19,7 @@ const changeTodoState = async (todo: Todo) => {
   try {
     await editTodo({ id, title: todo.title, completed });
   } catch (err) {
-    alertr("Failed to edit todo ", err);
+    alert(`Failed to edit todo - ${err}`);
   } finally {
     todo.editing = false;
   }
@@ -41,7 +41,7 @@ const switchCompleted = async (todo: Todo) => {
     await editTodo({ id, title, completed: !todo.completed });
     todo.completed = !todo.completed;
   } catch (err) {
-    alertr("Failed to edit todo ", err);
+    alert(`Failed to edit todo - ${err}`);
   }
 };
 </script>
