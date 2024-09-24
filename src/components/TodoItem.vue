@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, ref } from "vue";
 import { Todo } from "../App.vue";
+import { editTodo } from "../apiClient";
 const props = defineProps<{
   todo: Todo;
   handleClickDeleteTodo: (todo: Todo) => void;
@@ -8,11 +9,19 @@ const props = defineProps<{
 
 const todoInputRef = ref<HTMLInputElement | null>(null);
 
-const changeTodoState = (): void => {
-  props.todo.editing = false;
+const changeTodoState = async (todo: Todo) => {
+  const { id, completed } = todo;
 
-  if (props.todo.title.trim().length === 0) {
-    props.handleClickDeleteTodo(props.todo);
+  if (todo.title.trim().length === 0) {
+    props.handleClickDeleteTodo(todo);
+  }
+
+  try {
+    await editTodo({ id, title: todo.title, completed });
+  } catch (err) {
+    alertr("Failed to edit todo ", err);
+  } finally {
+    todo.editing = false;
   }
 };
 
@@ -24,15 +33,26 @@ const startEditing = async () => {
     todoInputRef.value.focus();
   }
 };
+
+const switchCompleted = async (todo: Todo) => {
+  const { id, title } = todo;
+
+  try {
+    await editTodo({ id, title, completed: !todo.completed });
+    todo.completed = !todo.completed;
+  } catch (err) {
+    alertr("Failed to edit todo ", err);
+  }
+};
 </script>
 
 <template>
   <div data-cy="Todo" class="todo" :class="{ completed: todo.completed }">
     <label class="todo__status-label">
-      <input data-cy="TodoStatus" type="checkbox" class="todo__status" @change="todo.completed = !todo.completed" />
+      <input data-cy="TodoStatus" type="checkbox" class="todo__status" @change="switchCompleted(todo)" />
     </label>
 
-    <form v-if="todo.editing" @submit.prevent="changeTodoState" @focusout="changeTodoState">
+    <form v-if="todo.editing" @submit.prevent="changeTodoState(todo)" @focusout="changeTodoState(todo)">
       <input
         ref="todoInputRef"
         data-cy="TodoTitleField"
@@ -40,7 +60,7 @@ const startEditing = async () => {
         className="todo__title-field"
         placeholder="Empty todo will be deleted"
         v-model="todo.title"
-        @keyup.esc="changeTodoState"
+        @keyup.esc="changeTodoState(todo)"
       />
     </form>
 

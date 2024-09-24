@@ -1,53 +1,81 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import todos from "./todos";
+import { computed, onMounted, ref, watch } from "vue";
 import Filter from "./components/Filter.vue";
 import TodoItem from "./components/TodoItem.vue";
+import { createTodos, deleteTodos, getTodos } from "./apiClient";
 
 export type Todo = {
-  id: number;
+  id: string;
   title: string;
   completed: boolean;
   editing: boolean;
 };
 
-const data = localStorage.getItem('todos');
-const todosX = ref(data ? JSON.parse(data) : []);
-const todosList = ref(todos);
-let title = ref("");
-let state = ref("Active");
+console.log(getTodos());
 
-watch(todosX, (newValue: Todo) => {
-  localStorage.setItem('todos', JSON.stringify(newValue))
-})
+const todosData = localStorage.getItem("todos");
+const filterData = localStorage.getItem("filter");
+let todosList = ref<Todo[]>(todosData ? JSON.parse(todosData) : []);
+let filter = ref<string>(filterData ? JSON.parse(filterData) : "All");
+let title = ref("");
+
+onMounted(() => {
+  getTodos().then((data) => {
+    todosList.value = data;
+    todosList.value = todosList.value.map((el) => ({ ...el, editing: false }));
+  });
+});
+
+watch(
+  todosList,
+  (newValue: Todo[]) => {
+    localStorage.setItem("todos", JSON.stringify(newValue));
+  },
+  { deep: true }
+);
+
+watch(
+  filter,
+  (newValue: string) => {
+    localStorage.setItem("filter", JSON.stringify(newValue));
+  },
+  { deep: true }
+);
 
 const todoRemain = computed(() => {
   return todosList.value.filter((todo) => !todo.completed).length;
 });
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   const titleCur = title.value.trim();
-  const todo = todosList.value.length - 1;
 
   if (titleCur === "") return;
 
-  todosList.value.push({
-    id: todosList.value[todo].id + 1,
-    completed: false,
-    editing: false,
-    title: titleCur,
-  });
-
-  title.value = "";
-  console.log(todosList.value);
+  try {
+    const data = await createTodos(titleCur);
+    todosList.value.push({ ...data, editing: false });
+  } catch (err) {
+    alertr("Failed to create todo", err);
+  } finally {
+    title.value = "";
+  }
 };
 
-const handleClickDeleteTodo = (todo: Todo) => {
+const handleClickDeleteTodo = async (todo: Todo) => {
+  try {
+    await deleteTodos(todo.id);
+    todosList.value.filter((el) => el.id !== todo.id);
+  } catch (err) {
+    alertr("Failed to delete todo", err);
+  } finally {
+    title.value = "";
+  }
+
   todosList.value = todosList.value.filter((el) => el !== todo);
 };
 
 const visibleTask = computed(() => {
-  switch (state.value) {
+  switch (filter.value) {
     case "Active":
       return todosList.value.filter((todo) => !todo.completed);
     case "Completed":
@@ -58,6 +86,10 @@ const visibleTask = computed(() => {
 });
 
 const clearCompleted = () => {
+  todosList.value.forEach(async (el) => {
+    if (el.completed) await deleteTodos(el.id);
+  });
+
   todosList.value = todosList.value.filter((el) => !el.completed);
 };
 </script>
@@ -90,7 +122,7 @@ const clearCompleted = () => {
       </main>
       <footer class="todoApp__footer" data-cy="Footer">
         <span class="todo-count" data-cy="TodosCounter">{{ todoRemain }} items left</span>
-        <Filter :state="state" @updateState="state = $event" />
+        <Filter :state="filter" @updateState="filter = $event" />
         <button type="button" class="todoApp__clear-completed" data-cy="ClearCompletedButton" @click="clearCompleted()">
           Clear completed
         </button>
